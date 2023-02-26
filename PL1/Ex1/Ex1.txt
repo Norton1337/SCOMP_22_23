@@ -1,0 +1,11 @@
+a)
+    1. x = 2
+    2. x = 0
+    3. 0; x = 2
+    3. 1234; x = 0
+
+    O processo pai irá guardar em "p" o PID do processo filho, entao será o pai a imprimir "2. x = 0" e "3. 1234; x = 0"
+
+b)
+    O processo pai irá sempre o imprimir o printf() da linha 9 antes do da linha 11, mas não é garantido que o processo filho imprima a sua linha 11 depois do
+    processo pai imprimir a sua linha 9, então é possivel obtermos o printf() da linha 11 antes do printf() da linha 9.

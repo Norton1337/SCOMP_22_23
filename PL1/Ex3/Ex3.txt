@@ -1,0 +1,8 @@
+a)
+    7 processos são criados, para um total de 8.
+
+b)
+    (ver .png)
+
+c)
+    "SCOMP!" é impresso 8 vezes
