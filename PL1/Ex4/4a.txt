@@ -1,0 +1,2 @@
+4 a) 
+"a" will have the same value in both processes
