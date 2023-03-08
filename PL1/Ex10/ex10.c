@@ -12,7 +12,7 @@ int main(){
 	srand((unsigned) time (&t));
 	
 	int n = rand() % 10;
-	printf("%d\n",n);
+
 	
 	for(int i=0 ; i< 2000; i++)
 		vec[i] = rand() % 10;
@@ -21,7 +21,8 @@ int main(){
 		if (fork() == 0) { 
 			for(int j=i*200;j<(i+1)*200; j++){
 				if(vec[j] == n){
-					exit(j);
+					//printf("%d\n",j-(i*200));
+					exit(j-(i*200));
 					} 
 			}
 			exit(255);/*sleep(): unistd.h*/
@@ -31,6 +32,6 @@ int main(){
 	for (int i = 0; i < 10; i++) {
 		int status;
 		waitpid(-1, &status, 0);
-		printf("%d\n", status);
+		printf("%d\n", WEXITSTATUS(status));
 	}
 }
