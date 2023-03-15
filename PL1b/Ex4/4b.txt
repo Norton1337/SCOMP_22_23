@@ -1,0 +1,10 @@
+b)Document with detail all the parameters of sigaction as well as its 
+possible values
+
+ signum -> numero do sinal, pode ser um numero inteiro ou um sinal
+ sigaction act -> estrutura que contem a informação sobre o sinal
+    sa_handler -> apontador para uma função que é chamada quando o sinal é recebido
+    sa_sigaction -> apontador para uma função que é chamada quando o sinal é recebido
+    sa_mask -> conjunto de sinais que são bloqueados durante a execução da função
+    sa_flags -> flags que controlam o comportamento do sinal
+ sigaction oldact -> estrutura que contem a informação sobre o sinal anterior

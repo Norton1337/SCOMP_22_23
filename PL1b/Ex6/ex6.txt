@@ -1,0 +1,4 @@
+d) On the function code which handles the signal is it possible to use global
+or static variables safely? Justify your answer.
+
+Não, porque o comportamento é indefinido quando o sinal é recebido, podendo ser que o sinal seja recebido durante a execução da função, o que pode causar erros.
