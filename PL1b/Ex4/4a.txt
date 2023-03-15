@@ -1,0 +1,6 @@
+a) Which is most suitable to handle signals? Justify your choice.
+
+Sigaction é melhor, oferece mais controlo sobre o que fazer quando o sinal é recebido.
+
+
+
