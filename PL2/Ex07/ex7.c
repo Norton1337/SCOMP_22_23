@@ -5,7 +5,19 @@
 #include <wait.h>
 #include <ctype.h>
 
+#define NUM_PIPES 5
+
 int main(void){
+
+ 	int fdArray[NUM_PIPES][2];
+
+    for(int i = 0; i< NUM_PIPES;i++){
+        if(pipe(fdArray[i]) == -1){
+            perror("Pipe failed");
+            return 1;
+        }
+    }
+
 
     int fd1[2];  
 	int fd2[2];
@@ -49,11 +61,10 @@ int main(void){
     for(int i=0;i<5;i++){
 
         if(fork()==0){
-            close(fd1[0]);// Close Read
-            close(fd2[0]);// Close Read
-            close(fd3[0]);// Close Read
-            close(fd4[0]);// Close Read
-            close(fd5[0]);// Close Read
+
+			for(int k=0;k<NUM_PIPES;k++){
+				close(fdArray[k][0]);
+			}
 
             int result[200];
             for(int j=0; j<200;j++){
@@ -79,11 +90,10 @@ int main(void){
 			}
 
 
-			close(fd1[1]); //Close Write
-			close(fd2[1]); //Close Write
-			close(fd3[1]); //Close Write
-			close(fd4[1]); //Close Write
-			close(fd5[1]); //Close Write
+			
+			for(int k=0;k<NUM_PIPES;k++){
+				close(fdArray[k][1]);
+			}
 
 			exit(1);
 		}	
@@ -91,11 +101,10 @@ int main(void){
 
     }
 
-    close(fd1[1]); //Close Write
-    close(fd2[1]); //Close Write
-    close(fd3[1]); //Close Write
-    close(fd4[1]); //Close Write
-    close(fd5[1]); //Close Write
+    
+	for(int k=0;k<NUM_PIPES;k++){
+		close(fdArray[k][1]);
+	}
 
     int result[200];
 	int total[1000];
@@ -126,10 +135,8 @@ int main(void){
 	}
     printf("Total[%d] = %d\n",testValue,total[testValue]);
 
-    close(fd1[0]);// Close Read
-    close(fd2[0]);// Close Read
-    close(fd3[0]);// Close Read
-    close(fd4[0]);// Close Read
-    close(fd5[0]);// Close Read
+    for(int k=0;k<NUM_PIPES;k++){
+		close(fdArray[k][0]);
+	}
 
 }
