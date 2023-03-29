@@ -24,7 +24,7 @@ int main(void){
 	int fd_vec[NUM_PIPES][2];
 	
 	for(int i = 0; i<NUM_PIPES; i++){
-		if(pipe(fd_vec[i] == -1)){
+		if(pipe(fd_vec[i]) == -1){
 			perror("pipe failed");
 			return 1;
 		}
@@ -37,7 +37,7 @@ int main(void){
 			
 			close(fd_vec[0][0]);
 			
-			for(int j = 1; j<NUM_PIPES-1; j++){
+			for(int j = 1; j<NUM_PIPES; j++){
 				close(fd_vec[j][1]);
 				if (i != j){
 					close(fd_vec[j][0]);
@@ -81,10 +81,10 @@ int main(void){
 	}
 	//Parent process
 	close(fd_vec[0][1]);
-	for(int i = 1; i<4 ; i++){
+	for(int i = 1; i<NUM_PIPES ; i++){
 		close(fd_vec[i][0]);
 	}
-	product products[10] = {
+	product products[5] = {
 			{"product1", 10},
 			{"product2", 20},
 			{"product3", 30},
@@ -94,7 +94,7 @@ int main(void){
 	
 	request childRequest;
 	while(1){
-		read(fd_vec[0],&childRequest,sizeof(request));
+		read(fd_vec[0][0],&childRequest,sizeof(request));
 		printf("id: %d\n",childRequest.id);
 		
 		switch(childRequest.readerID){
