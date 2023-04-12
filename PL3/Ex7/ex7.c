@@ -11,7 +11,7 @@
 #include <errno.h>
 #include <time.h>
 
-#define shm_name "/shm_ex5"
+#define shm_name "/shm_ex7"
 
 #define STR_SIZE 50
 #define NR_DISC 10
@@ -24,6 +24,7 @@ typedef struct aluno{
 
 
 int main() {
+    int aluno_size = sizeof(aluno_type);
     int fd = shm_open(shm_name, O_RDWR, S_IRUSR|S_IWUSR);
     if (fd < 0) {
         if (errno == ENOENT) {
@@ -33,7 +34,7 @@ int main() {
                 perror("shm_open");
                 exit(1);
             }
-            if (ftruncate(fd, sizeof(aluno_type)) < 0) {
+            if (ftruncate(fd, aluno_size) < 0) {
                 perror("ftruncate");
                 exit(1);
             }
@@ -42,7 +43,7 @@ int main() {
             exit(1);
         }
     }
-    aluno_type *aluno = mmap(NULL, sizeof(aluno_type), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    aluno_type *aluno = mmap(NULL, aluno_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (aluno == MAP_FAILED) {
         perror("mmap");
         exit(EXIT_FAILURE);
@@ -93,13 +94,13 @@ int main() {
         }
         printf("Highest grade: %d\n",highest);
         printf("Lowest grade: %d\n",lowest);
-        exit(EXIT_SUCCESS);
+        exit(0);
     } 
    
     pid_t pid2 = fork();
     if (pid2 < 0) {
         perror("fork");
-        exit(EXIT_FAILURE);
+        exit(0);
     } else if (pid2 == 0) {
         //Filho 2
 
@@ -110,16 +111,16 @@ int main() {
         }
         media = media/NR_DISC;
         printf("Average grade: %d\n",media);
-        exit(EXIT_SUCCESS);
+        exit(0);
     } 
 
     waitpid(pid1,NULL,0);
     waitpid(pid2,NULL,0);
 
 
-    if (munmap(aluno, sizeof(int)) == -1) {
+    if (munmap(aluno, aluno_size) == -1) {
         perror("munmap");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
 
     if (fd >= 0 && close(fd) < 0) {
