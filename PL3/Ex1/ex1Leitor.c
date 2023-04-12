@@ -17,6 +17,10 @@ typedef struct {
 int main(int argc, char *argv[]) {
     int data_size = sizeof(student_type);
     int fd = shm_open("/ex1", O_RDWR,S_IRUSR|S_IWUSR);
+    if (fd < 0) {
+        perror("shm_open");
+        exit(1);
+    }
     ftruncate(fd, data_size);
     student_type *student = (student_type*)mmap(NULL,data_size,PROT_READ|PROT_WRITE,MAP_SHARED,fd,0);
     bool data_received = false;
