@@ -6,6 +6,8 @@
 #include <string.h>
 #include <errno.h>
 
+#define shm_name "/shm_ex1"
+
 typedef struct {
     int number;
     char name[100];
@@ -13,11 +15,11 @@ typedef struct {
 
 int main(int argc, char *argv[]) {
     int data_size = sizeof(student_type);
-    int fd = shm_open("/ex1", O_RDWR, S_IRUSR|S_IWUSR);
+    int fd = shm_open(shm_name, O_RDWR, S_IRUSR|S_IWUSR);
     if (fd < 0) {
         if (errno == ENOENT) {
             printf("Shared memory object does not exist, creating it...\n");
-            fd = shm_open("/ex1", O_CREAT|O_EXCL|O_RDWR, S_IRUSR|S_IWUSR);
+            fd = shm_open(shm_name, O_CREAT|O_EXCL|O_RDWR, S_IRUSR|S_IWUSR);
             if (fd < 0) {
                 perror("shm_open");
                 exit(1);
