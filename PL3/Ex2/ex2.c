@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
 	printf("Num2: %d\n", sharedMemory->num2);
 	if(a>0){
 		while(sharedMemory->round<1000000){
-			sharedMemory->num--;
+			sharedMemory->num1--;
 			sharedMemory->num2++;
 			sharedMemory->round++;	
 		}
