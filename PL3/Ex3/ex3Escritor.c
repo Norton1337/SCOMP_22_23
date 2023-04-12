@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 
 #define arraySize 10
 #define shm_name "/shm_ex3"
@@ -37,7 +38,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-
+    srand(time(NULL));
     for (int i = 0; i < arraySize; i++) {
         numArray[i] = rand() % 20 + 1;
     }
