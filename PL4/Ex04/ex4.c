@@ -81,7 +81,7 @@ int main(){
         int probability = (rand() % 9)+1;
         
         if(probability > 3){
-			sprintf(stringType->string[stringType->stringAmount], "I'm the Father - with PID %d", stringType->stringAmount, getpid());
+			sprintf(stringType->string[stringType->stringAmount], "I'm the Father - with PID %d", getpid());
 			stringType->stringAmount++;
         }else{
 			 if(stringType->stringAmount > 0){

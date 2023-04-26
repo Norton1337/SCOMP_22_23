@@ -13,7 +13,7 @@
 #include <time.h>
 
 
-#define STRING_AMOUNT 10
+#define STRING_AMOUNT 50
 #define STRING_SIZE 80
 #define SHM_NAME "/shm_ex3"
 #define SEM_NAME "/sem_ex3"
@@ -76,7 +76,7 @@ int main(){
         if(stringType->stringAmount == STRING_AMOUNT){
             break;
         }
-        sprintf(stringType->string[stringType->stringAmount], "I'm the Father - with PID %d", stringType->stringAmount, getpid());
+        sprintf(stringType->string[stringType->stringAmount], "I'm the Father - with PID %d", getpid());
         stringType->stringAmount++;
         
         time_t t;

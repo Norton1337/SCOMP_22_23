@@ -13,6 +13,8 @@
 
 #define CHILDREN 8
 #define INTEGERS 200
+#define SEM_OUTPUT "/semOutput"
+#define SEM_NUMBERS "/semNumbers"
 
 
 int main(int argc, char *argv[]) {
@@ -20,12 +22,12 @@ int main(int argc, char *argv[]) {
     sem_t *semOutput;
     sem_t *semNumbers;
     pid_t child;
-    semOutput = sem_open("/semOutput", O_CREAT|O_EXCL, 0644, 1);
+    semOutput = sem_open(SEM_OUTPUT, O_CREAT|O_EXCL, 0644, 1);
     if(semOutput == SEM_FAILED){
         perror("Error in sem_open()");
         exit(EXIT_FAILURE);
     }
-    semNumbers = sem_open("/semNumbers", O_CREAT|O_EXCL, 0644, 1);
+    semNumbers = sem_open(SEM_NUMBERS, O_CREAT|O_EXCL, 0644, 1);
     if(semOutput == SEM_FAILED){
         perror("Error in sem_open()");
         exit(EXIT_FAILURE);
@@ -92,11 +94,11 @@ int main(int argc, char *argv[]) {
 
     fclose(outputFileRead);
     
-    if(sem_unlink("/semOutput")==-1){
+    if(sem_unlink(SEM_OUTPUT)==-1){
 		perror("Error in sem_unlink().\n");
 	    exit(EXIT_FAILURE);
 	}
-    if(sem_unlink("/semNumbers")==-1){
+    if(sem_unlink(SEM_NUMBERS)==-1){
 		perror("Error in sem_unlink().\n");
         exit(EXIT_FAILURE);
 	}
