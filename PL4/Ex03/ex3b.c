@@ -46,7 +46,10 @@ int main(){
     }
 
 
-    sem_wait(semaphore);
+    if(sem_wait(semaphore)==-1){
+        perror("Error in sem_wait()\n");
+        exit(EXIT_FAILURE);
+    }
     int total=0;
     int amount=0;
     for(int i=0; i<STRING_AMOUNT; i++){
@@ -60,9 +63,12 @@ int main(){
     
     printf("%d / %d String are filled\n", amount, total);
 
-    sem_post(semaphore);
+    if(sem_post(semaphore)==-1){
+        perror("Error in sem_post()\n");
+        exit(EXIT_FAILURE);
+    }
 
-     if (munmap(stringType, string_type_size) == -1) {
+    if (munmap(stringType, string_type_size) == -1) {
         perror("munmap");
         exit(EXIT_FAILURE);
     }

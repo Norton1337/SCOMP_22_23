@@ -69,8 +69,10 @@ int main(){
 
 
     while(stringType->stringAmount < STRING_AMOUNT){
-        sem_wait(semaphore);
-        
+        if(sem_wait(semaphore)==-1){
+            perror("Error in sem_wait()\n");
+            exit(EXIT_FAILURE);
+        }
         if(stringType->stringAmount == STRING_AMOUNT){
             break;
         }
@@ -82,7 +84,10 @@ int main(){
         
         sleep((rand() % 4)+1);
 
-        sem_post(semaphore);
+        if(sem_post(semaphore)==-1){
+            perror("Error in sem_post()\n");
+            exit(EXIT_FAILURE);
+        }
     }
  
 
