@@ -92,7 +92,6 @@ int main(int argc, char *argv[]) {
 
     fclose(outputFileRead);
     
-
     if(sem_unlink("/semOutput")==-1){
 		perror("Error in sem_unlink().\n");
 	    exit(EXIT_FAILURE);
