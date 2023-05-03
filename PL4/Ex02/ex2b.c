@@ -15,8 +15,8 @@
 
 #define STRING_AMOUNT 50
 #define STRING_SIZE 80
-#define SHM_NAME "/shm_ex3"
-#define SEM_NAME "/sem_ex3"
+#define SHM_NAME "/shm_ex2"
+#define SEM_NAME "/sem_ex2"
 
 typedef struct {
     int stringAmount;
@@ -45,7 +45,7 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-
+    printf("waiting for semaphore");
     if(sem_wait(semaphore)==-1){
         perror("Error in sem_wait()\n");
         exit(EXIT_FAILURE);
