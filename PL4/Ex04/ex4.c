@@ -14,7 +14,7 @@ int main() {
     sem_t *sems[NumSem];
     pid_t pids[NumChildren];
     int i;
-    for (i = 0; i < NumSem; i++) {
+    for (int i = 0; i < NumSem; i++) {
         char name[10];
         sprintf(name, "/sem%d", i+1);
         sems[i] = sem_open(name, O_CREAT | O_EXCL, 0644, 0);
@@ -24,7 +24,7 @@ int main() {
         }
     }
     
-    for (i = 0; i < NumChildren; i++) {
+    for (int i = 0; i < NumChildren; i++) {
         pids[i] = fork();
         if (pids[i] == -1) {
             perror("Error creating child process");
@@ -32,6 +32,7 @@ int main() {
         }
         if(pids[i]==0 && i == 0){
             printf("1st child!\n");
+            fflush(stdout);
             sem_post(sems[0]);
             exit(EXIT_SUCCESS);
         }
@@ -39,19 +40,21 @@ int main() {
         if(pids[i]==0 && i == 1){
             sem_wait(sems[1]);
             printf("2nd child!\n");
+            fflush(stdout);
             exit(EXIT_SUCCESS);
         }
 
     }
     sem_wait(sems[0]);
     printf("Im father\n");
+    fflush(stdout);
     sem_post(sems[1]);
     
-    for (i = 0; i < NumChildren; i++) {
+    for (int i = 0; i < NumChildren; i++) {
         waitpid(pids[i], NULL, 0);
     }
 
-    for (i = 0; i < NumSem; i++) {
+    for (int i = 0; i < NumSem; i++) {
         sem_close(sems[i]);
         char name[10];
         sprintf(name, "/sem%d", i+1);
