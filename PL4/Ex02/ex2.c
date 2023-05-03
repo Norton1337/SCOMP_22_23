@@ -15,8 +15,8 @@
 
 #define STRING_AMOUNT 50
 #define STRING_SIZE 80
-#define SHM_NAME "/shm_ex3"
-#define SEM_NAME "/sem_ex3"
+#define SHM_NAME "/shm_ex2"
+#define SEM_NAME "/sem_ex2"
 
 typedef struct {
     int stringAmount;
