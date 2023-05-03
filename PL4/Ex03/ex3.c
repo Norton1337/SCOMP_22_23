@@ -13,7 +13,8 @@
 #include <time.h>
 
 
-#define STRING_AMOUNT 50
+
+#define STRING_AMOUNT 10
 #define STRING_SIZE 80
 #define SHM_NAME "/shm_ex3"
 #define SEM_NAME "/sem_ex3"
@@ -24,7 +25,7 @@ typedef struct {
 } string_type;
 
 int main(){
-
+	time_t t;
     int string_type_size = sizeof(string_type);
     int fd = shm_open(SHM_NAME, O_RDWR, S_IRUSR|S_IWUSR);
     if (fd < 0) {
@@ -76,10 +77,21 @@ int main(){
         if(stringType->stringAmount == STRING_AMOUNT){
             break;
         }
-        sprintf(stringType->string[stringType->stringAmount], "I'm the Father - with PID %d", getpid());
-        stringType->stringAmount++;
         
-        time_t t;
+        int probability = (rand() % 9)+1;
+        
+        if(probability > 3){
+			sprintf(stringType->string[stringType->stringAmount], "I'm the Father - with PID %d", getpid());
+			stringType->stringAmount++;
+        }else{
+			 if(stringType->stringAmount > 0){
+				strcpy(stringType->string[stringType->stringAmount], "\0");
+				stringType->stringAmount--;
+			}
+			
+		}
+        
+
         srand((int)time(&t) % getpid());
         
         sleep((rand() % 4)+1);
