@@ -63,7 +63,7 @@ int main(){
             int r = rand() % 5;
             sleep(r);
 
-            printf("Process [%d] - buy_beer()\n",i);
+            printf("Process [%d] - buy_beer()\n",getpid());
             fflush(stdout);
            
             if(sem_wait(sems[0])==-1){
@@ -76,7 +76,7 @@ int main(){
                 sem_getvalue(sems[1], &sem_1_value);
             }while(sem_0_value!=0 || sem_1_value!=0);
 
-            printf("Process [%d] - eat_and_drink()\n",i);
+            printf("Process [%d] - eat_and_drink()\n",getpid());
             fflush(stdout);
             exit(EXIT_SUCCESS);
         }
@@ -93,7 +93,7 @@ int main(){
             int r = rand() % 5;
             sleep(r);
 
-            printf("Process [%d] - buy_chips()\n",i);
+            printf("Process [%d] - buy_chips()\n",getpid());
             fflush(stdout);
             if(sem_wait(sems[1])==-1){
                 perror("Error in sem_wait()\n");
@@ -108,7 +108,7 @@ int main(){
             while(sem_0_value!=0 || sem_1_value!=0);
 
 
-            printf("Process [%d] - eat_and_drink()\n",i);
+            printf("Process [%d] - eat_and_drink()\n",getpid());
             fflush(stdout);
             exit(EXIT_SUCCESS);
         }   
