@@ -28,7 +28,7 @@ int main(){
     }
     
     srand(getpid());
-    int buy_beer_amount = (rand() % 5);
+    int buy_beer_amount = (rand() % 6)+1;
     int buy_chips_amount = 6-buy_beer_amount;
 
     printf("buy_beer_amount: %d\n",buy_beer_amount);
