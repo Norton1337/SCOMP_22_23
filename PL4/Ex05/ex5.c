@@ -1,3 +1,41 @@
+/*
+
+Create semaphores for synchronization.
+    
+    Child process 1:
+        Print "Sistemas ".
+        post sem[0] so that child process 2 can run.
+        wait sem[2] (for child process 3 to run).
+        Print "a ".
+        post sem[0] so that child process 2 can run.
+
+    Child process 2:
+        wait sem[0] (for child process 1 to run).
+        Print "de ".
+        post sem[1] so that child process 3 can run.
+        wait sem[0] (for child process 1 to run).
+        Print "melhor  ".
+        post sem[1] so that child process 3 can run.
+
+
+    Child process 3:
+        wait sem[1] (for child process 2 to run).
+        Print "Computadores -".
+        post sem[2] so that child process 1 can run.
+        wait sem[1] (for child process 2 to run).
+        Print "disciplina! ".
+
+
+
+
+
+
+Wait for all children to finish.
+Clean up semaphores.
+
+
+*/
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>

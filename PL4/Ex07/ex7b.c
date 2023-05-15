@@ -1,3 +1,31 @@
+/*
+
+Create shared memory and semaphores for synchronization.
+Initialize data structure in shared memory.
+Randomly generate the number of beers and chips to buy.
+
+    Each process:
+        Wait for sem[0] (this semaphore controlles the access to the shared memory)
+        increment the number of beers and chips bought
+        post sem[0] 
+
+        IF the number of beers and chips bought is equal to the number of beers and chips to buy:
+            post sem[1] (if this is reached then all the processes have finished buying)
+        
+        ELSE 
+            wait for sem[1] (if this is reached then not all the processes have finished buying)
+            post sem[1] (to allow the next process to wait for it) (barrier)
+
+        Drink beer and eat chips.
+
+        
+
+
+Wait for all children to finish.
+Clean up shared memory and semaphores.
+
+*/
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>

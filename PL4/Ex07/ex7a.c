@@ -1,3 +1,30 @@
+/*
+
+Create semaphores for synchronization.
+
+    Father:
+        Sleep for a random time.
+        Buy beer.
+        Post sem[1] (so the child knows that the father has finished buying beer)
+        Wait for sem[0] (to wait for the children to finish buying chips)
+
+    Child:
+        Sleep for a random time.
+        Buy chips.
+        Post sem[0] (so the father knows that the child has finished buying chips)
+        Wait for sem[1] (to wait for the father to finish buying beer)
+
+    Both:
+        Drink beer and eat chips.
+        
+
+
+Wait for child to finish.
+Clean up semaphores.
+
+*/
+
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
