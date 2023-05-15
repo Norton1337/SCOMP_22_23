@@ -199,6 +199,10 @@ int main(int argc, char *argv[]) {
             perror("sem_close");
             exit(1);
         }
+        if(sem_close(semaphores_v2[i])==-1){
+            perror("sem_close");
+            exit(1);
+        }
     }
 
     if(sem_close(can_write)==-1){
