@@ -36,139 +36,137 @@ Clean up shared memory and semaphores.
 #include <time.h>
 
 #define SHM_NAME "/shm_ex17"
-#define SEM_NAME "/sem_ex17"
+#define SEM_NAME_BUFFER "/sem_ex17_buffer"
+#define SEM_NAME_VIP "/sem_ex17"
+#define SEM_NAME_SPECIAL "/sem_ex17"
+// #define SEM_NAME "/sem_ex17"
 
 #define MAX_CAPACITY 10
 #define VIP 0
 #define SPECIAL 1
 #define NORMAL 2
-#define WAIT_TIME 10000
+#define WAIT_TIME 100000
 
 typedef struct {
     int vipWaiting;
     int specialWaiting;
     int normalWaiting;
 	int clients;
-} club;
+} club_Buffer;
 
-void vipClient(sem_t *semClub,club *sharedMemory){
-    pid_t vip = fork();
-    if(vip == -1){
-        perror("Error in fork()");
-        exit(1);
-    }
-	if (vip == 0){
-		time_t t;
-		srand((int)time(&t) % getpid());
+void vipProcess(sem_t *semBuffer,sem_t *semVip,club_Buffer *sharedMemory){
+	pid_t pid = fork();
+	if(pid==-1){
+		perror("Error in fork()");
+		exit(1);
+	}
+	if(pid==0){
 		while(1){
-
+			int vipValue;
+			sem_getvalue(semVip,&vipValue);
+			if(sharedMemory->vipWaiting==1 && vipValue==1){
+				sem_wait(semVip);
+			}
 			if(sharedMemory->clients<MAX_CAPACITY && sharedMemory->vipWaiting>0){
-				sem_wait(semClub);
-                sharedMemory->vipWaiting--;
+				sem_wait(semBuffer);
 				sharedMemory->clients++;
-				sem_post(semClub);
-			}else
-			if(rand() % 100==0){
-				if(sharedMemory->clients==MAX_CAPACITY){
-                    sem_wait(semClub);
-					sharedMemory->vipWaiting++;
-                    sem_post(semClub);
-				}else{
-					sem_wait(semClub);
-					sharedMemory->clients++;
-					printf("new vip, now %d clients\n",sharedMemory->clients);
-					sem_post(semClub);
-				}
+				sharedMemory->vipWaiting--;
+				printf("VIP Client entered the club\n");
+				fflush(stdout);
+				sem_post(semBuffer);
 			}
-			usleep(WAIT_TIME);
+			sem_getvalue(semVip,&vipValue);
+			if(sharedMemory->vipWaiting==0 && vipValue==0){
+				sem_post(semVip);
+			}
+			
 			
 		}
-		exit(0);
+		
 	}
 }
 
-void specialClient(sem_t *semClub,club *sharedMemory){
-    pid_t special = fork();
-    if (special == -1){
-        perror("Error in fork()");
-        exit(1);
-    }
-	if (special == 0){
-		time_t t;
-		srand((int)time(&t) % getpid());
+void specialProcess(sem_t *semBuffer,sem_t *semVip,sem_t *semSpecial,club_Buffer *sharedMemory){
+	pid_t pid = fork();
+	if(pid==-1){
+		perror("Error in fork()");
+		exit(1);
+	}
+	if(pid==0){
 		while(1){
-
-			if(sharedMemory->clients<MAX_CAPACITY && sharedMemory->vipWaiting==0 && sharedMemory->specialWaiting>0){
-				sem_wait(semClub);
-                sharedMemory->specialWaiting--;
-				sharedMemory->clients++;
-				sem_post(semClub);
-			}else
-			if(rand() % 50==1){
-				if(sharedMemory->clients==MAX_CAPACITY){
-                    sem_wait(semClub);
-					sharedMemory->specialWaiting++;
-                    sem_post(semClub);
-				}else{
-					sem_wait(semClub);
-					sharedMemory->clients++;
-					printf("new special, now %d clients\n",sharedMemory->clients);
-					sem_post(semClub);
-				}
+			int specialValue;
+			sem_getvalue(semSpecial,&specialValue);
+			if(sharedMemory->specialWaiting==1 && specialValue==1){
+				sem_wait(semSpecial);
 			}
-			usleep(WAIT_TIME);
+
+			if(sharedMemory->clients<MAX_CAPACITY && sharedMemory->specialWaiting>0 && sem_trywait(semVip)){
+				sem_post(semVip);
+				sem_wait(semBuffer);
+				sharedMemory->clients++;
+				sharedMemory->specialWaiting--;
+				printf("Special Client entered the club\n");
+				fflush(stdout);
+				sem_post(semBuffer);
+			}
+			sem_getvalue(semSpecial,&specialValue);
+			if(sharedMemory->specialWaiting==0 && specialValue==0){
+				sem_post(semSpecial);
+			}
+			
 			
 		}
-		exit(0);
+		
 	}
 }
 
-void normalClient(sem_t *semClub,club *sharedMemory){
-    pid_t normal = fork();
-    if (normal == -1){
-        perror("Error in fork()");
-        exit(1);
-    }
-	if (normal == 0){
-		time_t t;
-		srand((int)time(&t) % getpid());
+void normalProcess(sem_t *semBuffer,sem_t *semVip,sem_t *semSpecial,club_Buffer *sharedMemory){
+	pid_t pid = fork();
+	if(pid==-1){
+		perror("Error in fork()");
+		exit(1);
+	}
+	if(pid==0){
 		while(1){
-
-			if(sharedMemory->clients<MAX_CAPACITY && sharedMemory->vipWaiting==0 && sharedMemory->specialWaiting==0 && sharedMemory->normalWaiting>0){
-				sem_wait(semClub);
-                sharedMemory->normalWaiting--;
+			// int vipValue;
+			// int specialValue;
+			// sem_getvalue(semVip,&vipValue);
+			// sem_getvalue(semVip,&specialValue);
+			// printf("vipValue: %d\n",vipValue);
+			// fflush(stdout);
+			// printf("specialValue: %d\n",specialValue);
+			// fflush(stdout);
+			if(sharedMemory->clients<MAX_CAPACITY && sharedMemory->normalWaiting>0 && sem_trywait(semVip) && sem_trywait(semSpecial)){
+				sem_post(semVip);
+				sem_post(semSpecial);
+				sem_wait(semBuffer);
 				sharedMemory->clients++;
-				sem_post(semClub);
-			}else
-			if(rand() % 25==2){
-				if(sharedMemory->clients==MAX_CAPACITY){
-                    sem_wait(semClub);
-					sharedMemory->normalWaiting++;
-                    sem_post(semClub);
-				}else{
-					sem_wait(semClub);
-					sharedMemory->clients++;
-					printf("new normal, now %d clients\n",sharedMemory->clients);
-					sem_post(semClub);
-				}
+				sharedMemory->normalWaiting--;
+				printf("Normal Client entered the club\n");
+				fflush(stdout);
+				sem_post(semBuffer);
 			}
-			usleep(WAIT_TIME);
-	
+
+			
 			
 		}
-		exit(0);
+		
 	}
 }
+
 
 int main(int argc, char *argv[]) {
     shm_unlink(SHM_NAME);
-	sem_unlink(SEM_NAME);
+	sem_unlink(SEM_NAME_BUFFER);
+	sem_unlink(SEM_NAME_VIP);
+	sem_unlink(SEM_NAME_SPECIAL);
 	
-	int data_size = sizeof(club);
+	int data_size = sizeof(club_Buffer);
 	int fd = shm_open(SHM_NAME, O_RDWR, S_IRUSR | S_IWUSR);
     if (fd < 0) {
         if (errno == ENOENT) {
             printf("Shared memory object does not exist, creating it...\n");
+			fflush(stdout);
             fd = shm_open(SHM_NAME, O_CREAT|O_EXCL|O_RDWR, S_IRUSR|S_IWUSR);
             if (fd < 0) {
                 perror("shm_open");
@@ -183,48 +181,93 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
     }
-	club *sharedMemory = (club*)mmap(NULL, data_size, PROT_READ | PROT_WRITE,MAP_SHARED, fd, 10);
+	club_Buffer *sharedMemory = mmap(NULL, data_size, PROT_READ | PROT_WRITE,MAP_SHARED, fd, 0);
 	if (sharedMemory == MAP_FAILED) {
 		perror("mmap");
 		exit(1);
 	}
 	sharedMemory->clients=MAX_CAPACITY;
 
-	sem_t *semClub;
+	sem_t *semBuffer;
+	sem_t *semVip;
+	sem_t *semSpecial;
 
-	
-	if ((semClub = sem_open(SEM_NAME, O_CREAT, 0644,1)) == SEM_FAILED) {
+	if ((semBuffer = sem_open(SEM_NAME_BUFFER, O_CREAT, 0644,1)) == SEM_FAILED) {
 		perror("Error in sem_open()");
 		exit(1);
 	}
+	if ((semVip = sem_open(SEM_NAME_VIP, O_CREAT, 0644,1)) == SEM_FAILED) {
+		perror("Error in sem_open()");
+		exit(1);
+	}
+	if ((semSpecial = sem_open(SEM_NAME_SPECIAL, O_CREAT, 0644,1)) == SEM_FAILED) {
+		perror("Error in sem_open()");
+		exit(1);
+	}
+
+	vipProcess(semBuffer,semVip,sharedMemory);
+	specialProcess(semBuffer,semVip,semSpecial,sharedMemory);
+	normalProcess(semBuffer,semVip,semSpecial,sharedMemory);
+
+
+	pid_t pid = fork();
+	if (pid == -1) {
+		perror("fork");
+		exit(1);
+	}
+	if(pid == 0){
+		time_t t;
+		srand((int)time(&t));
+		while(1){
 			
-	vipClient(semClub,sharedMemory);
-    specialClient(semClub,sharedMemory);
-    normalClient(semClub,sharedMemory);
+			if(rand() %20 ==0 && sharedMemory->clients>0){
+				sem_wait(semBuffer);
+				sharedMemory->clients--;
+				printf("a client just left, %d clients still inside\n",sharedMemory->clients);
+				fflush(stdout);
+				sem_post(semBuffer);
+			}
+
+			if(rand() %100 == 0){
+				sem_wait(semBuffer);
+				sharedMemory->vipWaiting++;
+				sem_post(semBuffer);
+			}
+
+			if(rand() %50 == 0){
+				sem_wait(semBuffer);
+				sharedMemory->specialWaiting++;
+				sem_post(semBuffer);
+			}
+
+			if(rand() %20 == 0){
+				sem_wait(semBuffer);
+				sharedMemory->normalWaiting++;
+				sem_post(semBuffer);
+			}
+
+
+			usleep(WAIT_TIME);
+					
+			printf("\nvipWaiting: %d\n",sharedMemory->vipWaiting);
+			fflush(stdout);
+			printf("specialWaiting: %d\n",sharedMemory->specialWaiting);
+			fflush(stdout);
+			printf("normalWaiting: %d\n",sharedMemory->normalWaiting);
+			fflush(stdout);
+			printf("clients inside: %d\n",sharedMemory->clients);
+			fflush(stdout);
+
+			
+		}
+	}
 
 	
 	
 	
 	
 	
-	time_t t;
-	srand((int)time(&t));
-	while(1){
-		
-		if(rand() %20 ==0 && sharedMemory->clients>0){
-			sem_wait(semClub);
-			sharedMemory->clients--;
-			printf("a client just left, %d clients still inside\n",sharedMemory->clients);
-			sem_post(semClub);
-		}
-		usleep(WAIT_TIME);
-				
-        printf("\nvipWaiting: %d\n",sharedMemory->vipWaiting);
-        printf("specialWaiting: %d\n",sharedMemory->specialWaiting);
-        printf("normalWaiting: %d\n",sharedMemory->normalWaiting);
-			
-		
-	}
+	
 	
 
 	for (int i=0;i<3;i++){
@@ -248,7 +291,15 @@ int main(int argc, char *argv[]) {
     }
 
     
-	if(sem_unlink(SEM_NAME)==-1){
+	if(sem_unlink(SEM_NAME_BUFFER)==-1){
+		perror("Error in sem_unlink().\n");
+		exit(1);
+	}
+	if(sem_unlink(SEM_NAME_SPECIAL)==-1){
+		perror("Error in sem_unlink().\n");
+		exit(1);
+	}
+	if(sem_unlink(SEM_NAME_VIP)==-1){
 		perror("Error in sem_unlink().\n");
 		exit(1);
 	}
