@@ -1,3 +1,8 @@
+/*
+    Here we need 2 semaphores, one is mutual exclusion and the other is to synchronize processes with events. 
+    This is to control the execution beetween the writing of the "S" first than the "C"
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -52,13 +57,3 @@ int main() {
 
     return 0;
 }
-
-
-/**
-In this solution, the parent process writes 'S' indefinitely, while the child process writes 'C' indefinitely. º
-* Before writing each character, each process waits on the corresponding semaphore. 
-* The semaphore for 'S' is initialized to 1, while the semaphore for 'C' is initialized to 0. 
-* This ensures that the first 'S' can be written immediately, but the first 'C' must wait for the 'S' to be written. 
-* After each character is written, the process posts to the other semaphore to signal that it's okay to write the other character. 
-* This ensures that the number of 'S' and 'C' never differs by more than one. Finally, the semaphores are closed and unlinked.
-**/ 

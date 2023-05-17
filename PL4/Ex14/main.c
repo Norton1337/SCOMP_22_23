@@ -1,184 +1,178 @@
+/*
+    Create 1 shared memory and 2 semaphores. 
+    One is a writer/reader priority one is mutual exclusion.
+
+    I have process set A accessing the shared memory, the mutual exclusion semaphore controls which process is accessing the memory. 
+
+    When all A processes are done, the barrier gives permission to B set to execute.^
+
+    Attention to "sleep" times.
+*/
+
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 #include <sys/types.h>
-#include <sys/mman.h>
-#include <sys/stat.h> 
-#include <fcntl.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <sys/wait.h>
-#include <string.h>
-#include <sys/time.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h> 
 #include <semaphore.h>
+#include <string.h>
 #include <errno.h>
+#include <time.h>
 
+#define SEM_NAME "/sem14"
+#define SEM_NAME_BUFFER "/sem14buffer"
+#define SEM_NAME_BARRIER "/sem14barrier"
+#define SHM_NAME "/shm14"
 
-#define SHM_NAME "/shm_ex14"
-#define SEM_NAME "/sem_ex14"
-#define SET_A 3
-#define SET_B 2
-#define SHARED_MEM_SIZE 10
+#define A_PROCESS 3
+#define B_PROCESS 2
 
+typedef struct{
+    int list[10];
+    int waiting;
+}integers;
 
+int main(){
+    sem_unlink(SEM_NAME);
+    sem_unlink(SEM_NAME_BARRIER);
 
+    pid_t pids_a[A_PROCESS];
+    pid_t pids_b[B_PROCESS];
 
-void producer(const char *sem_name, const char *shm_name, int id) {
-    sem_t *semaphore = sem_open(sem_name, 0);
-    if (semaphore == SEM_FAILED) {
-        perror("Error in sem_open()");
-        exit(EXIT_FAILURE);
-    }
-
-    int fd = shm_open(shm_name, O_RDWR, S_IRUSR|S_IWUSR);
+    int integers_size = sizeof(integers);
+    int fd = shm_open(SHM_NAME, O_RDWR, S_IRUSR|S_IWUSR);
     if (fd < 0) {
-        perror("shm_open");
-        exit(1);
-    }
-
-    int *shm_ptr = mmap(NULL, SHARED_MEM_SIZE*sizeof(int), PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-    if (shm_ptr == MAP_FAILED) {
-        perror("mmap");
-        exit(1);
-    }
-
-    int data[SHARED_MEM_SIZE];
-    for (int i=0; i< SHARED_MEM_SIZE; i++){
-        data[i] = rand() % 100;
-    }
-
-    sem_wait(semaphore);
-
-    for (int i = 0; i < SHARED_MEM_SIZE; i++) {
-        shm_ptr[i] = data[i];
-    }
-
-    printf("Producer %d wrote data into shm\n", id);
-
-    munmap(shm_ptr, SHARED_MEM_SIZE*sizeof(int));
-    sem_post(semaphore);
-    sem_close(semaphore);
-    exit(0);
-}
-
-void consumer(const char* sem_name, const char* shm_name, int process_id) {
-    int* shared_mem_ptr = NULL;
-    sem_t* semaphore = sem_open(sem_name, 0);
-    if (semaphore == SEM_FAILED) {
-        perror("Error in sem_open() for consumer");
-        exit(EXIT_FAILURE);
-    }
-
-    int shm_fd = shm_open(shm_name, O_RDWR, S_IRUSR|S_IWUSR);
-    if (shm_fd == -1) {
-        perror("Failed to open shared memory in consumer");
-        exit(EXIT_FAILURE);
-    }
-
-    shared_mem_ptr = mmap(NULL, SHARED_MEM_SIZE * sizeof(int), PROT_READ|PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    if (shared_mem_ptr == MAP_FAILED) {
-        perror("Error mapping shared memory in consumer");
-        exit(EXIT_FAILURE);
-    }
-
-    while (1) {
-        sem_wait(semaphore); // wait for permission to access shared memory
-        int producer_id = shared_mem_ptr[SHARED_MEM_SIZE - 1];
-        if (producer_id == process_id) { // only read data produced by other producers
-            sem_post(semaphore); // release shared memory for other processes
-            continue;
+        if (errno == ENOENT) {
+            printf("Shared memory object does not exist, creating it...\n");
+            fd = shm_open(SHM_NAME, O_CREAT|O_EXCL|O_RDWR, S_IRUSR|S_IWUSR);
+            if (fd < 0) {
+                perror("shm_open");
+                exit(1);
+            }
+            if (ftruncate(fd, integers_size) < 0) {
+                perror("ftruncate");
+                exit(1);
+            }
+        } else {
+            perror("shm_open");
+            exit(1);
         }
-        printf("Consumer %d reading data from shared memory:\n", process_id);
-        for (int i = 0; i < SHARED_MEM_SIZE - 1; i++) {
-            printf("%d ", shared_mem_ptr[i]);
-        }
-        printf("\n");
-
-        shared_mem_ptr[SHARED_MEM_SIZE - 1] = process_id; // update the shared memory to indicate the last producer who wrote data
-        sem_post(semaphore); // release shared memory for other processes
-        sleep(6); // sleep for 6 seconds before reading data again
     }
-}
 
-int main() {
-    srand(time(NULL)); // initialize random seed
-
-    // Create shared memory
-    int fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-    if (fd < 0) {
-        perror("shm_open");
-        exit(1);
-    }
-    if (ftruncate(fd, SHARED_MEM_SIZE * sizeof(int)) < 0) {
-        perror("ftruncate");
-        exit(1);
-    }
-    int *shared_mem = mmap(NULL, SHARED_MEM_SIZE * sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (shared_mem == MAP_FAILED) {
+    integers *integers = mmap(NULL, integers_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (integers == MAP_FAILED) {
         perror("mmap");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
-    // Initialize shared memory to zeros
-    memset(shared_mem, 0, SHARED_MEM_SIZE * sizeof(int));
+    integers->waiting = 0;
+    for(int i=0 ; i< 10; i++){
+        integers->list[i]=0;
+        
 
-    // Create semaphore
+    } 
+    
+    
     sem_t *semaphore = sem_open(SEM_NAME, O_CREAT | O_EXCL, 0644, 1);
     if (semaphore == SEM_FAILED) {
-        if (errno == EEXIST) {
-            semaphore = sem_open(SEM_NAME, 0);
-        } else {
-            perror("Error in sem_open()");
+        perror("Error creating semaphore");
+        exit(EXIT_FAILURE);
+    }
+
+    sem_t *semaphorePriority = sem_open(SEM_NAME_BARRIER, O_CREAT | O_EXCL, 0644, 1);
+    if (semaphorePriority == SEM_FAILED) {
+        perror("Error creating semaphore");
+        exit(EXIT_FAILURE);
+    }
+
+     sem_t *sembuffer = sem_open(SEM_NAME_BUFFER, O_CREAT | O_EXCL, 0644, 1);
+    if (sembuffer == SEM_FAILED) {
+        perror("Error creating semaphore");
+        exit(EXIT_FAILURE);
+    }
+
+
+    for(int i=0; i<A_PROCESS; i++){
+        pids_a[i] = fork();
+        
+        if (pids_a[i] == -1) {
+            perror("Error creating child process");
             exit(EXIT_FAILURE);
         }
+
+        if(pids_a[i] == 0){
+            printf("hello mate\n");
+            fflush(stdout);
+            while (1)
+            {
+                if(integers->waiting == 0){
+                    sem_wait(semaphorePriority);
+                }
+                sem_wait(sembuffer);
+                integers->waiting++;
+                sem_post(sembuffer);
+                
+                sem_wait(semaphore);
+
+                for(int j=0 ; j< 10; j++){
+                    integers->list[j]=rand()%255;
+                }
+                
+                sleep(1);
+                printf("pid:%d, of A just finished - Waiting : %d \n", getpid(), integers->waiting);
+                fflush(stdout);
+                
+                sem_wait(sembuffer);
+                integers->waiting--;
+                sem_post(sembuffer);
+                
+                if(integers->waiting == 0){
+                    sem_post(semaphorePriority);
+                }
+                
+                sem_post(semaphore);
+                
+                sleep(5);
+            }
+            
+            
+        }
+
     }
 
-    // Create producer processes
-    pid_t pid;
-    for (int i = 0; i < SET_A; i++) {
-        pid = fork();
-        if (pid < 0) {
-            perror("Failed to create producer process");
-            exit(1);
-        } else if (pid == 0) {
-            // Child process
-            producer(SEM_NAME, SHM_NAME, i);
-            exit(0);
+    for(int i=0; i<B_PROCESS; i++){
+        pids_b[i] = fork();
+        
+        if (pids_b[i] == -1) {
+            perror("Error creating child process");
+            exit(EXIT_FAILURE);
+        }
+
+         if(pids_b[i] == 0){
+            printf("in b mate\n");
+            fflush(stdout);
+            while (1)
+            {
+                sem_wait(semaphorePriority);
+                sem_wait(semaphore);
+                
+                for(int j=0 ; j< 10; j++){
+                    integers->list[j]=rand()%255;
+                }
+                printf("pid:%d, of B just finished - Waiting : %d \n", getpid(), integers->waiting);
+                fflush(stdout);
+                sem_post(semaphore);
+            
+                sem_post(semaphorePriority);
+                sleep(6);
+            }
+            
         }
     }
-
-    // Create consumer processes
-    for (int i = 0; i < SET_B; i++) {
-        pid = fork();
-        if (pid < 0) {
-            perror("Failed to create consumer process");
-            exit(1);
-        } else if (pid == 0) {
-            // Child process
-            consumer(SEM_NAME, SHM_NAME, SET_A + i);
-            exit(0);
-        }
-    }
-
-    // Wait for child processes to terminate
-    while (wait(NULL) > 0);
-
-    // Clean up resources
-    if (munmap(shared_mem, SHARED_MEM_SIZE * sizeof(int)) < 0) {
-        perror("munmap");
-        exit(1);
-    }
-    if (close(fd) < 0) {
-        perror("close");
-        exit(1);
-    }
-    if (sem_close(semaphore) < 0) {
-        perror("sem_close");
-        exit(1);
-    }
-    if (sem_unlink(SEM_NAME) < 0) {
-        perror("sem_unlink");
-        exit(1);
-    }
-
-    return 0;
+    
 }

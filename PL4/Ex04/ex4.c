@@ -1,3 +1,6 @@
+/*
+    2 semaphores , because we only have 2 crucial points where the control of execution is needed, in the first to father and father to second child.
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

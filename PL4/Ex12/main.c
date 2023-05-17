@@ -1,3 +1,8 @@
+/*
+    We need 1 shared memory and 3 semaphores. 
+    1 is mutual exclusion, 1 is for sychronization of processes with events, and 1 for controlling access to resources.
+    
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -204,7 +209,7 @@ int main(){
     }
 
 
-    if (shm_unlink("/exercicio13") < 0) {
+    if (shm_unlink("/exercicio12") < 0) {
         printf("Error at shm_unlink()!\n");
         exit(1);
     }

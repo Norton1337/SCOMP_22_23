@@ -1,3 +1,9 @@
+/*
+    We need 1 semaphore to control the acess to resources >= 0, and several others (the number of doors) that act like mutual exclusion to simulate the behaviour of the doors. 
+
+*/
+
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/wait.h>
