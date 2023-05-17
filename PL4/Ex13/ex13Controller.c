@@ -1,4 +1,8 @@
 /*
+
+    To write in the shared memory we are using mutual exclusion.
+    We are also using reader writer with priority to writers.
+
     Controller process:
         Create shared memory and semaphores for synchronization.
         Initialize data structure in shared memory.
@@ -43,6 +47,7 @@
 #define SHM_NAME "/shm_ex13"
 #define SEM_NAME_WRITER "/sem_ex13_writer"
 #define SEM_NAME_READER "/sem_ex13_reader"
+#define SEM_NAME_BUFFER "/sem_ex13_buffer"
 
 typedef struct {
     char text[100];
@@ -76,6 +81,8 @@ int main(){
 
     sem_unlink(SEM_NAME_WRITER);
     sem_unlink(SEM_NAME_READER);
+    sem_unlink(SEM_NAME_BUFFER);
+
     sem_t *semaphore_writer = sem_open(SEM_NAME_WRITER, O_CREAT | O_EXCL, 0644, 1);
     if (semaphore_writer == SEM_FAILED) {
         perror("Error in sem_open()");
@@ -88,19 +95,24 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
+    sem_t *semaphore_buffer = sem_open(SEM_NAME_BUFFER, O_CREAT | O_EXCL, 0644, 1);
+    if (semaphore_buffer == SEM_FAILED) {
+        perror("Error in sem_open()");
+        exit(EXIT_FAILURE);
+    }
+
     sentenceBuf *sentence = mmap(NULL, sentence_buffer_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (sentence == MAP_FAILED) {
         perror("mmap");
         exit(EXIT_FAILURE);
     }
 
-    sem_wait(semaphore_writer);
-    sem_wait(semaphore_reader);
+    sem_wait(semaphore_buffer);
     sentence->readerAmount=0;
     sentence->writerAmount=0;
     strcpy(sentence->text, "");
-    sem_post(semaphore_writer);
-    sem_post(semaphore_reader);
+    sem_post(semaphore_buffer);
+
 
 
 }

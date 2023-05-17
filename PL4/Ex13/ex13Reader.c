@@ -59,12 +59,16 @@ int main(int argc, char *argv[]){
             exit(EXIT_FAILURE);
         }
         else if(pid == 0){
-            sem_wait(semaphore_writer);
-            sem_post(semaphore_writer);
+
+        
 
             sem_wait(semaphore_reader);
             sentence->readerAmount++;
             sem_post(semaphore_reader);
+
+            
+            sem_wait(semaphore_writer);
+            sem_post(semaphore_writer);
 
             sleep(1);
             printf("Reader [%d]: %s\t There are %d readers\n", getpid(), sentence->text, sentence->readerAmount);

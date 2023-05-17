@@ -14,6 +14,7 @@
 
 #define SHM_NAME "/shm_ex13"
 #define SEM_NAME_WRITER "/sem_ex13_writer"
+#define SEM_NAME_BUFFER "/sem_ex13_buffer"
 
 typedef struct {
     char text[100];
@@ -36,7 +37,12 @@ int main(int argc, char *argv[]){
 
     sem_t *semaphore_writer = sem_open(SEM_NAME_WRITER, 0);
     if (semaphore_writer == SEM_FAILED) {
-        perror("Error in sem_open()");
+        perror("Error in sem_open() writer");
+        exit(EXIT_FAILURE);
+    }
+    sem_t *semaphore_buffer = sem_open(SEM_NAME_BUFFER, 0);
+    if (semaphore_buffer == SEM_FAILED) {
+        perror("Error in sem_open() buffer");
         exit(EXIT_FAILURE);
     }
 
@@ -53,15 +59,31 @@ int main(int argc, char *argv[]){
             exit(EXIT_FAILURE);
         }
         if(pid == 0){
-            sem_wait(semaphore_writer);
+            if(sentence->writerAmount == 0){
+                sem_wait(semaphore_writer);
+            }
+            sem_wait(semaphore_buffer);
             sentence->writerAmount++;
-
+            sem_post(semaphore_buffer);
+            fflush(stdout);
+            sleep(i);
+            sem_wait(semaphore_buffer);
+            
+            
+            
+            
             time_t t = time(NULL);
             time(&t);
             sprintf(sentence->text, "Writer [%d]: The current time is %s", getpid(), ctime(&t));
             printf("Writer [%d]: There are %d readers and %d writers\n", getpid(), sentence->readerAmount, sentence->writerAmount);
+            fflush(stdout);
+            
             sentence->writerAmount--;
-            sem_post(semaphore_writer);
+
+            if(sentence->writerAmount == 0){
+               sem_post(semaphore_writer);
+            }
+            sem_post(semaphore_buffer);
             exit(EXIT_SUCCESS);
         }
     }
