@@ -37,9 +37,9 @@ Clean up shared memory and semaphores.
 
 #define SHM_NAME "/shm_ex17"
 #define SEM_NAME_BUFFER "/sem_ex17_buffer"
-#define SEM_NAME_VIP "/sem_ex17"
-#define SEM_NAME_SPECIAL "/sem_ex17"
-// #define SEM_NAME "/sem_ex17"
+#define SEM_NAME_VIP "/sem_ex17_vip"
+#define SEM_NAME_SPECIAL "/sem_ex17_special"
+#define SEM_NAME_NORMAL "/sem_ex17_normal"
 
 #define MAX_CAPACITY 10
 #define VIP 0
@@ -62,23 +62,27 @@ void vipProcess(sem_t *semBuffer,sem_t *semVip,club_Buffer *sharedMemory){
 	}
 	if(pid==0){
 		while(1){
-			int vipValue;
-			sem_getvalue(semVip,&vipValue);
-			if(sharedMemory->vipWaiting==1 && vipValue==1){
-				sem_wait(semVip);
-			}
+			
+			sem_wait(semBuffer);
 			if(sharedMemory->clients<MAX_CAPACITY && sharedMemory->vipWaiting>0){
-				sem_wait(semBuffer);
-				sharedMemory->clients++;
-				sharedMemory->vipWaiting--;
-				printf("VIP Client entered the club\n");
-				fflush(stdout);
-				sem_post(semBuffer);
+				if(sem_trywait(semVip)){
+
+	
+					
+					sharedMemory->clients++;
+					sharedMemory->vipWaiting--;
+					if(sharedMemory->vipWaiting>0){
+						sem_post(semVip);
+					}
+					printf("VIP Client entered the club\n");
+					
+					fflush(stdout);
+					
+				}
+
 			}
-			sem_getvalue(semVip,&vipValue);
-			if(sharedMemory->vipWaiting==0 && vipValue==0){
-				sem_post(semVip);
-			}
+			sem_post(semBuffer);
+			
 			
 			
 		}
@@ -86,7 +90,7 @@ void vipProcess(sem_t *semBuffer,sem_t *semVip,club_Buffer *sharedMemory){
 	}
 }
 
-void specialProcess(sem_t *semBuffer,sem_t *semVip,sem_t *semSpecial,club_Buffer *sharedMemory){
+void specialProcess(sem_t *semBuffer,sem_t *semVip, sem_t *semSpecial,club_Buffer *sharedMemory){
 	pid_t pid = fork();
 	if(pid==-1){
 		perror("Error in fork()");
@@ -94,25 +98,30 @@ void specialProcess(sem_t *semBuffer,sem_t *semVip,sem_t *semSpecial,club_Buffer
 	}
 	if(pid==0){
 		while(1){
-			int specialValue;
-			sem_getvalue(semSpecial,&specialValue);
-			if(sharedMemory->specialWaiting==1 && specialValue==1){
-				sem_wait(semSpecial);
+			
+			
+			sem_wait(semBuffer);
+			if(sharedMemory->clients<MAX_CAPACITY && sharedMemory->specialWaiting>0){
+				if(sem_trywait(semVip)==-1){
+					if(sem_trywait(semSpecial)){
+						
+						sharedMemory->clients++;
+						sharedMemory->specialWaiting--;
+						if(sharedMemory->specialWaiting>0){
+							sem_post(semSpecial);
+						}
+						printf("Special Client entered the club\n");
+						fflush(stdout);
+			
+					}
+				}
+				else{
+					sem_post(semVip);
+				}
+				
 			}
-
-			if(sharedMemory->clients<MAX_CAPACITY && sharedMemory->specialWaiting>0 && sem_trywait(semVip)){
-				sem_post(semVip);
-				sem_wait(semBuffer);
-				sharedMemory->clients++;
-				sharedMemory->specialWaiting--;
-				printf("Special Client entered the club\n");
-				fflush(stdout);
-				sem_post(semBuffer);
-			}
-			sem_getvalue(semSpecial,&specialValue);
-			if(sharedMemory->specialWaiting==0 && specialValue==0){
-				sem_post(semSpecial);
-			}
+			sem_post(semBuffer);
+			
 			
 			
 		}
@@ -128,24 +137,31 @@ void normalProcess(sem_t *semBuffer,sem_t *semVip,sem_t *semSpecial,club_Buffer 
 	}
 	if(pid==0){
 		while(1){
-			// int vipValue;
-			// int specialValue;
-			// sem_getvalue(semVip,&vipValue);
-			// sem_getvalue(semVip,&specialValue);
-			// printf("vipValue: %d\n",vipValue);
-			// fflush(stdout);
-			// printf("specialValue: %d\n",specialValue);
-			// fflush(stdout);
-			if(sharedMemory->clients<MAX_CAPACITY && sharedMemory->normalWaiting>0 && sem_trywait(semVip) && sem_trywait(semSpecial)){
-				sem_post(semVip);
-				sem_post(semSpecial);
-				sem_wait(semBuffer);
-				sharedMemory->clients++;
-				sharedMemory->normalWaiting--;
-				printf("Normal Client entered the club\n");
-				fflush(stdout);
-				sem_post(semBuffer);
+			
+			
+			sem_wait(semBuffer);
+			if(sharedMemory->clients<MAX_CAPACITY && sharedMemory->normalWaiting>0){
+				if(sem_trywait(semVip)==-1){
+					if(sem_trywait(semSpecial)==-1){
+
+							sharedMemory->clients++;
+							sharedMemory->normalWaiting--;
+							printf("Normal Client entered the club\n");
+
+							fflush(stdout);
+							
+						
+					}
+					else{
+						sem_post(semSpecial);
+					}
+				}
+				else{
+					sem_post(semVip);
+				}
 			}
+			sem_post(semBuffer);
+			
 
 			
 			
@@ -186,21 +202,29 @@ int main(int argc, char *argv[]) {
 		perror("mmap");
 		exit(1);
 	}
+	sharedMemory->vipWaiting=0;
+	sharedMemory->specialWaiting=0;
+	sharedMemory->normalWaiting=0;
 	sharedMemory->clients=MAX_CAPACITY;
 
 	sem_t *semBuffer;
 	sem_t *semVip;
 	sem_t *semSpecial;
+	sem_t *semNormal;
 
 	if ((semBuffer = sem_open(SEM_NAME_BUFFER, O_CREAT, 0644,1)) == SEM_FAILED) {
 		perror("Error in sem_open()");
 		exit(1);
 	}
-	if ((semVip = sem_open(SEM_NAME_VIP, O_CREAT, 0644,1)) == SEM_FAILED) {
+	if ((semVip = sem_open(SEM_NAME_VIP, O_CREAT, 0644,0)) == SEM_FAILED) {
 		perror("Error in sem_open()");
 		exit(1);
 	}
-	if ((semSpecial = sem_open(SEM_NAME_SPECIAL, O_CREAT, 0644,1)) == SEM_FAILED) {
+	if ((semSpecial = sem_open(SEM_NAME_SPECIAL, O_CREAT, 0644,0)) == SEM_FAILED) {
+		perror("Error in sem_open()");
+		exit(1);
+	}
+	if ((semNormal = sem_open(SEM_NAME_NORMAL, O_CREAT, 0644,0)) == SEM_FAILED) {
 		perror("Error in sem_open()");
 		exit(1);
 	}
@@ -231,12 +255,25 @@ int main(int argc, char *argv[]) {
 			if(rand() %100 == 0){
 				sem_wait(semBuffer);
 				sharedMemory->vipWaiting++;
+				if(sharedMemory->vipWaiting==1){
+					if(sem_trywait(semVip)==-1){
+						sem_post(semVip);
+					}
+				}
+
+
 				sem_post(semBuffer);
 			}
 
 			if(rand() %50 == 0){
 				sem_wait(semBuffer);
 				sharedMemory->specialWaiting++;
+				if(sharedMemory->specialWaiting==1){
+					if(sem_trywait(semSpecial)==-1){
+						sem_post(semSpecial);
+					}
+				}
+				
 				sem_post(semBuffer);
 			}
 
@@ -245,6 +282,7 @@ int main(int argc, char *argv[]) {
 				sharedMemory->normalWaiting++;
 				sem_post(semBuffer);
 			}
+
 
 
 			usleep(WAIT_TIME);
