@@ -1,3 +1,8 @@
+/*
+    1 semaphore mutual exclusion
+    1 semaphore control of resources
+*/
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
