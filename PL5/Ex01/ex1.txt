@@ -1,0 +1,14 @@
+a)
+
+In total, there are 6 processes created.
+
+Line 2 creates a child
+
+The first child process, in line 5 creates another child process using fork(), total of 3 processes
+
+Finally, at line 10 each (3) process creates another child process, for a total of 6
+
+
+b)
+
+2 Children execute the pthread_create() function at line 7. This function creates a new thread within the process, for a total of 2 threads created.
