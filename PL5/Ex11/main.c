@@ -2,18 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#define EXAME_AMOUNT 300
-#define THREAD_COUNT 5
-
-pthread_cond_t cond_var;
-pthread_cond_t cond_t4;
-pthread_cond_t cond_t5;
-
-pthread_mutex_t mutex;
-pthread_mutex_t mutex_t4;
-pthread_mutex_t mutex_t5;
-
-typedef struct{
+typedef struct {
     int number;
     int g1Result;
     int g2Result;
@@ -21,113 +10,148 @@ typedef struct{
     int finalGrade;
 } Exam;
 
-Exam exams[EXAME_AMOUNT];
-int examCounter = 0;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond_t2_t3 = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_t4 = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_t5 = PTHREAD_COND_INITIALIZER;
+
+Exam ArrayProva[300];
+int count = 0;
+int analyzed = 0;
 int passedExams = 0;
 int failedExams = 0;
+int terminate = 0;
 
-void *t1(void *arg){
-    srand(time(NULL));
-    for(int i = 0; i < EXAME_AMOUNT; i++){
-        exams[i].number = i;
-        exams[i].g1Result = (rand() % 100) + 1;
-        exams[i].g2Result = (rand() % 100) + 1;
-        exams[i].g3Result = (rand() % 100) + 1;
-        exams[i].finalGrade = (exams[i].g1Result + exams[i].g2Result + exams[i].g3Result)/3;
+void *T1(void *arg) {
+    int i;
+    for (i = 0; i < 300; i++) {
         pthread_mutex_lock(&mutex);
-        examCounter++;
-        
-        pthread_cond_signal(&cond_var);
+        ArrayProva[i].number = i;
+        ArrayProva[i].g1Result = (rand() % 100) + 1;
+        ArrayProva[i].g2Result = (rand() % 100) + 1;
+        ArrayProva[i].g3Result = (rand() % 100) + 1;
+        count++;
+        // printf("created exam %d\n", i);
+        pthread_cond_signal(&cond_t2_t3);
         pthread_mutex_unlock(&mutex);
     }
 
-    pthread_exit(1);   
+    pthread_mutex_lock(&mutex);
+    terminate = 1;
+    pthread_cond_signal(&cond_t2_t3);
+    pthread_mutex_unlock(&mutex);
+    pthread_exit(NULL);
 }
 
-void *t2T3(void *arg){
-    while(examCounter < 300){
-        pthread_mutex_lock(&mutex);
-        pthread_cond_wait(&cond_var, &mutex);
-        
-        // printf("Exam %d: %d\n", exams[i].number, exams[i].finalGrade);
-        if(exams[examCounter].finalGrade >= 50){
-            pthread_cond_signal(&cond_t4);    
-        }else{
-            pthread_cond_signal(&cond_t5);
+void *T2_T3(void *arg) {
+    while (1) {
+        if(analyzed >= count && terminate) {
+            break;
         }
+        pthread_mutex_lock(&mutex);
+        while (analyzed >= count && !terminate) {
+            pthread_cond_wait(&cond_t2_t3, &mutex);
+        }
+        
+        if (analyzed >= count && terminate) {
+            pthread_mutex_unlock(&mutex);
+            break;
+        }
+
+        ArrayProva[analyzed].finalGrade = (ArrayProva[analyzed].g1Result + ArrayProva[analyzed].g2Result + ArrayProva[analyzed].g3Result)/3;
+        
+        if (ArrayProva[analyzed].finalGrade >= 50) {
+            passedExams++;
+            // pthread_cond_signal(&cond_t4);
+            // printf("t4 analyzed exam %d\n", analyzed);
+        } else {
+            failedExams++;
+            // pthread_cond_signal(&cond_t5);
+            // printf("t5 analyzed exam %d\n", analyzed);
+        }
+        analyzed++;
         pthread_mutex_unlock(&mutex);
-
-
-    }
-
-
-    pthread_exit(23);
-
-}
-
-void *t4(void *arg){
-    while(passedExams + failedExams < 300){
-        pthread_mutex_lock(&mutex_t4);
-        pthread_cond_wait(&cond_t4, &mutex_t4);
-        passedExams++;
-        pthread_mutex_unlock(&mutex_t4);
         
+       
     }
-
-    pthread_exit(4);
-
 }
 
-void *t5(void *arg){
-    while(passedExams + failedExams < 300){
-        pthread_mutex_lock(&mutex_t5);
-        pthread_cond_wait(&cond_t5, &mutex_t5);
-        failedExams++;
-        pthread_mutex_unlock(&mutex_t5);
+// void *T4(void *arg) {
+//     while (1) {
+//         if(analyzed >= count && terminate) {
+//             break;
+//         }
+//         pthread_mutex_lock(&mutex);
+//         while (analyzed >= count && !terminate) {
+//             pthread_cond_wait(&cond_t4, &mutex);
+//         }
         
-    }
+//         if (analyzed >= count && terminate) {
+//             pthread_mutex_unlock(&mutex);
+//             break;
+//         }
+//         passedExams++;
+//         pthread_mutex_unlock(&mutex);
+        
+//         if(passedExams+failedExams == 300) {    
+//             break;
+//         }
 
-    pthread_exit(5);
-}
+//     }
+// }
+
+// void *T5(void *arg) {
+//     while (1) {
+//         if(analyzed >= count && terminate) {
+//             break;
+//         }
+//         pthread_mutex_lock(&mutex);
+       
+//        while (analyzed >= count && !terminate) {
+//             pthread_cond_wait(&cond_t5, &mutex);
+//         }
+        
+//         if (analyzed >= count && terminate) {
+//             pthread_mutex_unlock(&mutex);
+//             break;
+//         }
+//         failedExams++;
+//         pthread_mutex_unlock(&mutex);
+
+        
+//         if(passedExams+failedExams == 300) {    
+//             break;
+//         }
+       
+
+//     }
+// }
 
 
-int main(){
+int main() {
+    pthread_t t1, t2, t3;
+
+    pthread_create(&t1, NULL, T1, NULL);
+    pthread_create(&t2, NULL, T2_T3, NULL);
+    pthread_create(&t3, NULL, T2_T3, NULL);
+    // pthread_create(&t4, NULL, T4, NULL);
+    // pthread_create(&t5, NULL, T5, NULL);
+
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
+    pthread_join(t3, NULL);
+    // pthread_join(t4, NULL);
+    // pthread_join(t5, NULL);
     
-    pthread_t threads[THREAD_COUNT];
-    pthread_cond_init(&cond_var, NULL);
-    pthread_cond_init(&cond_t4, NULL);
-    pthread_cond_init(&cond_t5, NULL);
 
-    pthread_mutex_init(&mutex, NULL);
-    pthread_mutex_init(&mutex_t4, NULL);
-    pthread_mutex_init(&mutex_t5, NULL);
+    printf("Positive amount: %d\n",passedExams); 
+    printf("Negative amount: %d\n",failedExams); 
 
-    pthread_create(&threads[0], NULL, (void *) t1, NULL);
-    pthread_create(&threads[1], NULL, (void *) t2T3, NULL);
-    pthread_create(&threads[2], NULL, (void *) t2T3, NULL);
-    pthread_create(&threads[3], NULL, (void *) t4, NULL);
-    pthread_create(&threads[4], NULL, (void *) t5, NULL);
+    double posPercentage = (double) passedExams / 300 * 100;
+    double negPercentage = (double) failedExams / 300 * 100;
 
-    void *thread_result;
-
-    for(int i = 0; i < THREAD_COUNT; i++){
-        pthread_join(threads[i], &thread_result);
-        printf("Thread %d returned %d\n", i, (int) thread_result);
-        if(i=2){
-            printf("Passed exams: %d\n", passedExams);
-            printf("Failed exams: %d\n", failedExams);
-        }
-    }
-
-
-    pthread_cond_destroy(&cond_var);
-    pthread_cond_destroy(&cond_t4);
-    pthread_cond_destroy(&cond_t5);
-
-    pthread_mutex_destroy(&mutex);
-    pthread_mutex_destroy(&mutex_t4);
-    pthread_mutex_destroy(&mutex_t5);
+    printf("Positive grades: %.2f%%\n", posPercentage);
+    printf("Negative grades: %.2f%%\n", negPercentage);
 
     return 0;
-
 }
