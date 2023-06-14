@@ -4,6 +4,7 @@
 
 #define MAX_EXAMS 300
 
+
 typedef struct {
     int number;
     int g1Result;
@@ -17,24 +18,25 @@ pthread_cond_t cond_t2_t3 = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_t4 = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_t5 = PTHREAD_COND_INITIALIZER;
 
-
-Exam ArrayProva[MAX_EXAMS];
+Exam ArrayProva[300];
 int count = 0;
 int analyzed = 0;
 int passedExams = 0;
 int failedExams = 0;
 int terminate = 0;
-
+int newExamPos=0;
+int newExamFail=0;
+int otherFinished = 0;
 void *T1(void *arg) {
     int i;
-    for (i = 0; i < MAX_EXAMS; i++) {
+    for (i = 0; i < 300; i++) {
         pthread_mutex_lock(&mutex);
         ArrayProva[i].number = i;
         ArrayProva[i].g1Result = (rand() % 100) + 1;
         ArrayProva[i].g2Result = (rand() % 100) + 1;
         ArrayProva[i].g3Result = (rand() % 100) + 1;
         count++;
-
+        // printf("created exam %d\n", i);
         pthread_cond_signal(&cond_t2_t3);
         pthread_mutex_unlock(&mutex);
     }
@@ -48,80 +50,96 @@ void *T1(void *arg) {
 
 void *T2_T3(void *arg) {
     while (1) {
+        if(analyzed >= count && terminate) {
+            break;
+        }
         pthread_mutex_lock(&mutex);
-
-        if (analyzed >= MAX_EXAMS) {
+        while (analyzed >= count && !terminate) {
+            pthread_cond_wait(&cond_t2_t3, &mutex);
+        }
+        
+        if (analyzed >= count && terminate) {
             pthread_mutex_unlock(&mutex);
             break;
         }
 
-        while (analyzed >= MAX_EXAMS) {
-            pthread_cond_wait(&cond_t2_t3, &mutex);
-        }
-        
-       
-
         ArrayProva[analyzed].finalGrade = (ArrayProva[analyzed].g1Result + ArrayProva[analyzed].g2Result + ArrayProva[analyzed].g3Result)/3;
-        analyzed++;
         if (ArrayProva[analyzed].finalGrade >= 50) {
+            
             pthread_cond_signal(&cond_t4);
-            // printf("t4 analyzed exam %d\n", analyzed);
+            newExamPos++;
         } else {
+            
             pthread_cond_signal(&cond_t5);
-            printf("t5 analyzed exam %d\n", analyzed);
+            newExamFail++;
         }
-        
+        analyzed++;
         pthread_mutex_unlock(&mutex);
+        
        
     }
 }
 
+
+
 void *T4(void *arg) {
     while (1) {
-        printf("iujgrthe");
         pthread_mutex_lock(&mutex);
-        while (analyzed <= MAX_EXAMS) {
+
+        while (newExamPos == passedExams && !otherFinished) {
             pthread_cond_wait(&cond_t4, &mutex);
         }
-       
-     
+        if(passedExams+failedExams >= MAX_EXAMS) {
+            pthread_mutex_unlock(&mutex);
+            break;
+        }
         
-        
+
         passedExams++;
-        printf("test");
-        if (analyzed >= MAX_EXAMS) {
-            printf("THE NOISE\n\n\n");
+
+        printf("POS: Number of exams: %d\n", passedExams+failedExams);
+        if(passedExams+failedExams >= MAX_EXAMS) {
+            otherFinished = 1;
+            pthread_cond_signal(&cond_t5);
             pthread_mutex_unlock(&mutex);
             break;
         }
         pthread_mutex_unlock(&mutex);
-        
-
-
     }
+
+    
+
 }
 
 void *T5(void *arg) {
     while (1) {
         pthread_mutex_lock(&mutex);
-        while (analyzed <= MAX_EXAMS) {
-             pthread_cond_wait(&cond_t5, &mutex);
+        
+        while (newExamFail == failedExams && !otherFinished) {
+            pthread_cond_wait(&cond_t5, &mutex);
+        }
+        if(passedExams+failedExams >= MAX_EXAMS) {
+            pthread_mutex_unlock(&mutex);
+            break;
         }
        
-     
-        
-        
         failedExams++;
-        printf("test");
-        if (analyzed >= MAX_EXAMS) {
-            printf("THE NOISE\n\n\n");
+
+        printf("FAIL: Number of exams: %d\n", failedExams+passedExams);
+        
+        if(passedExams+failedExams >= MAX_EXAMS) {
+            otherFinished = 1;
+            pthread_cond_signal(&cond_t4);
             pthread_mutex_unlock(&mutex);
             break;
         }
         pthread_mutex_unlock(&mutex);
-        
+       
 
     }
+
+    
+
 }
 
 
